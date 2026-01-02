@@ -3,73 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GPay Bridge</title>
+    <title>Secure Payment</title>
     <style>
-        body { font-family: monospace; padding: 20px; word-wrap: break-word; }
-        .log { margin-bottom: 5px; border-bottom: 1px solid #eee; }
-        .error { color: red; }
-        .success { color: green; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #ffffff;
+            color: #333;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #007AFF; /* iOS Blue */
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .message {
+            font-size: 16px;
+            font-weight: 500;
+            color: #8e8e93; /* iOS Gray */
+        }
     </style>
     <script src="https://pay.google.com/gp/p/js/pay.js"></script>
     <script>
+        // TODO: Change to 'PRODUCTION' when ready for release
         const paymentsClient = new google.payments.api.PaymentsClient({
-            environment: 'TEST' // Change to 'PRODUCTION' for live
+            environment: 'TEST' 
         });
 
-        // Logger function to see what is happening on the phone screen
-        function log(msg, type = 'info') {
-            const div = document.createElement('div');
-            div.className = 'log ' + type;
-            div.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
-            document.body.appendChild(div);
-            console.log(msg);
-        }
-
         function onGooglePayLoaded() {
-            log("Google Pay Script Loaded.");
-            
-            // Check if iOS handler exists
             if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.googlePayHandler) {
-                log("iOS Bridge Detected. Sending 'ready'...");
                 window.webkit.messageHandlers.googlePayHandler.postMessage({status: 'ready'});
-            } else {
-                log("ERROR: iOS Bridge NOT detected. Are you running this in the App?", "error");
             }
         }
 
-        // 2. The Native App calls this function
         function startPayment(requestJson) {
-            log("Received startPayment command from iOS...");
-            
             try {
                 const paymentDataRequest = JSON.parse(requestJson);
-                log("Request JSON Parsed successfully.");
                 
-                // 3. Trigger Google Pay
                 paymentsClient.loadPaymentData(paymentDataRequest)
                     .then(function(paymentData) {
-                        log("Payment Success! Sending token to iOS...", "success");
                         window.webkit.messageHandlers.googlePayHandler.postMessage({
                             status: 'success', 
                             data: paymentData
                         });
                     })
                     .catch(function(err) {
-                        log("Payment Failed/Cancelled: " + JSON.stringify(err), "error");
+                        // Send full error object back to iOS
                         window.webkit.messageHandlers.googlePayHandler.postMessage({
                             status: 'error', 
                             error: err
                         });
                     });
-                    
             } catch (e) {
-                log("CRITICAL JS ERROR: " + e.message, "error");
+                // Critical JS error
+                if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.googlePayHandler) {
+                    window.webkit.messageHandlers.googlePayHandler.postMessage({
+                        status: 'error', 
+                        error: e.message
+                    });
+                }
             }
         }
     </script>
 </head>
 <body onload="onGooglePayLoaded()">
-    <h3>Google Pay Debug Bridge</h3>
-    <div id="logs">Waiting for Google Pay...</div>
+    <div class="spinner"></div>
+    <div class="message">Initializing Secure Payment...</div>
 </body>
 </html>
