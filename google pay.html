@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://pay.google.com/gp/p/js/pay.js"></script>
+    <script>
+        const paymentsClient = new google.payments.api.PaymentsClient({environment: 'TEST'}); // Change to 'PRODUCTION'
+
+        function onGooglePayLoaded() {
+            // Signal to iOS that JS is ready
+            window.webkit.messageHandlers.googlePayHandler.postMessage({status: 'ready'});
+        }
+
+        function startPayment(requestJson) {
+            const paymentDataRequest = JSON.parse(requestJson);
+            
+            paymentsClient.loadPaymentData(paymentDataRequest)
+                .then(function(paymentData) {
+                    // Success: Send token back to iOS
+                    window.webkit.messageHandlers.googlePayHandler.postMessage({
+                        status: 'success', 
+                        data: paymentData
+                    });
+                })
+                .catch(function(err) {
+                    // Error: Send error back to iOS
+                    window.webkit.messageHandlers.googlePayHandler.postMessage({
+                        status: 'error', 
+                        error: err
+                    });
+                });
+        }
+    </script>
+</head>
+<body onload="onGooglePayLoaded()"></body>
+</html>
