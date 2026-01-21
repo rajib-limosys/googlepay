@@ -3,89 +3,195 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Payment</title>
+    <title>Scan to Pay - Google Pay</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Josefin+Sans:wght@400;600&display=swap" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
     <style>
+        :root {
+            --bg-color: #f0f0f0;
+            --card-bg: #ffffff;
+            --text-color: #000000;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: 'Josefin Sans', sans-serif;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            width: 320px;
+            padding: 40px 30px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* "Thank You" script font style */
+        h1.script-font {
+            font-family: 'Great Vibes', cursive;
+            font-size: 3.5rem;
+            margin: 0;
+            font-weight: 400;
+            line-height: 1.2;
+            color: #2c2c2c;
+        }
+
+        /* "Scan to pay" text */
+        h2.subtitle {
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 1.2rem;
+            margin: 15px 0 25px 0;
+            font-weight: 600;
+        }
+
+        /* QR Code Container */
+        #qrcode {
+            margin: 10px 0 20px 0;
+            padding: 10px;
+            background: #fff; /* White bg behind QR code helps contrast */
+        }
+
+        /* Google Pay Logo Container */
+        .gpay-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 40px;
+        }
+
+        .gpay-logo span {
+            font-size: 1.8rem;
+            font-weight: 500;
+            color: #5f6368;
+        }
+
+        .gpay-icon {
+            height: 35px;
+            width: auto;
+        }
+
+        /* Bottom Details Section */
+        .footer-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 20px;
+            font-size: 0.7rem;
+        }
+
+        .social-section {
+            text-align: left;
+        }
+        
+        .social-icons span {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            background: #333;
+            border-radius: 50%;
+            margin-right: 2px;
+        }
+
+        .logo-circle {
+            width: 50px;
+            height: 50px;
+            border: 1px solid #000;
+            border-radius: 50%;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #ffffff;
+            font-size: 0.5rem;
+            text-transform: uppercase;
+            font-weight: bold;
+            text-align: center;
+            line-height: 1.1;
+        }
+
+        .review-section {
+            text-align: right;
+            max-width: 90px;
+            font-size: 0.55rem;
+            line-height: 1.4;
+        }
+
+        .website-link {
+            font-size: 0.7rem;
+            letter-spacing: 1px;
+            margin-top: 10px;
+            text-transform: uppercase;
             color: #333;
-            user-select: none;
-            -webkit-user-select: none;
-        }
-        .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            border-left-color: #007AFF;
-            border-radius: 50%;
-            width: 36px;
-            height: 36px;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .message {
-            font-size: 16px;
-            font-weight: 500;
-            color: #8e8e93;
+            text-decoration: none;
         }
     </style>
-    <script src="https://pay.google.com/gp/p/js/pay.js"></script>
-    <script>
-        // We will initialize this dynamically based on what iOS sends
-        let paymentsClient = null;
-
-        function onGooglePayLoaded() {
-            if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.googlePayHandler) {
-                window.webkit.messageHandlers.googlePayHandler.postMessage({status: 'ready'});
-            }
-        }
-
-        // Updated function accepts 'env' ('TEST' or 'PRODUCTION')
-        function startPayment(requestJson, env) {
-            try {
-                // Initialize client lazily with the correct environment
-                if (paymentsClient === null) {
-                    paymentsClient = new google.payments.api.PaymentsClient({
-                        environment: env || 'TEST' // Default to TEST if missing
-                    });
-                }
-                
-                const paymentDataRequest = JSON.parse(requestJson);
-                
-                paymentsClient.loadPaymentData(paymentDataRequest)
-                    .then(function(paymentData) {
-                        window.webkit.messageHandlers.googlePayHandler.postMessage({
-                            status: 'success', 
-                            data: paymentData
-                        });
-                    })
-                    .catch(function(err) {
-                        window.webkit.messageHandlers.googlePayHandler.postMessage({
-                            status: 'error', 
-                            error: err
-                        });
-                    });
-            } catch (e) {
-                if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.googlePayHandler) {
-                    window.webkit.messageHandlers.googlePayHandler.postMessage({
-                        status: 'error', 
-                        error: e.message
-                    });
-                }
-            }
-        }
-    </script>
 </head>
-<body onload="onGooglePayLoaded()">
-    <div class="spinner"></div>
-    <div class="message">Initializing Secure Payment...</div>
+<body>
+
+    <div class="card">
+        <h1 class="script-font">Thank you</h1>
+        <h2 class="subtitle">Scan to pay</h2>
+
+        <div id="qrcode"></div>
+
+        <div class="gpay-logo">
+            <svg class="gpay-icon" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+                <path d="M113.47 309.408L95.648 375.94l-65.139 1.378C11.042 341.211 0 299.9 0 256c0-42.451 10.324-82.483 28.624-117.732h.014l57.992 10.632 60.271 50.286C133.053 216.943 128.08 236.532 128.08 256c0 20.266 5.467 40.542 16.591 58.749z" fill="#fbbb00"/>
+                <path d="M507.527 208.176C510.467 223.662 512 239.655 512 256c0 18.328-1.927 36.206-5.598 53.451-12.462 58.683-45.025 109.925-90.134 146.187l-.014-.014-73.044-3.727-10.338-64.535c29.932-17.554 53.324-45.025 65.646-77.911h-136.89V208.176h245.899z" fill="#518ef8"/>
+                <path d="M416.253 455.624l.014.014C372.396 490.901 316.666 512 256 512c-97.491 0-182.252-54.491-225.491-134.681l82.961-67.91c21.619 57.698 77.278 98.771 142.53 98.771 28.047 0 54.323-7.582 76.87-20.818l83.383 68.262z" fill="#28b446"/>
+                <path d="M419.404 58.936l-82.933 67.896c-23.316-13.986-50.632-22.02-79.671-22.02-65.252 0-120.911 41.073-142.53 98.771l-118.277-60.931C38.748 64.477 123.509 9.986 220.986 9.986c60.666 0 116.396 21.099 160.253 56.348l38.165-7.398z" fill="#f14336"/>
+            </svg>
+            <span>Pay</span>
+        </div>
+
+        <div class="footer-details">
+            <div class="social-section">
+                <p>Connect with us</p>
+                <div class="social-icons">
+                    <span></span><span></span><span></span><span></span>
+                </div>
+                <p>@YOURUSERNAME</p>
+            </div>
+
+            <div class="logo-circle">
+                Your<br>Logo<br>Here
+            </div>
+
+            <div class="review-section">
+                <p>PLEASE LEAVE US A REVIEW</p>
+                <p>WE APPRECIATE YOUR FEEDBACK</p>
+            </div>
+        </div>
+
+        <a href="https://limosys.com" class="website-link">WWW.YOURWEBSITE.COM</a>
+    </div>
+
+    <script>
+        // Generating the QR Code for "https://limosys.com"
+        var qrcode = new QRCode(document.getElementById("qrcode"), {
+            text: "https://limosys.com",
+            width: 180,
+            height: 180,
+            colorDark : "#000000",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H
+        });
+    </script>
+
 </body>
 </html>
